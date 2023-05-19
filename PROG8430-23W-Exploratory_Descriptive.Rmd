@@ -1,5 +1,5 @@
 ---
-title: "EDA on Mail Delivery Data"
+title: "EDA"
 author: "Divyang Vinubhai Hirpara"
 date: "01/31/2023"
 output:
