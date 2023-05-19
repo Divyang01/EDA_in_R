@@ -1,6 +1,6 @@
-# EDA Mail Orders
+# EDA Multiple Server
 
-Mail Order has total 6 columns with manufacturer, server, dc of Character data type and smbr, smbt, conn of integer datatype.
+Dataset has total 6 columns with manufacturer, server, dc of Character data type and smbr, smbt, conn of integer datatype.
 File containts a total 90000 rows.
 
 #### Study File Data
