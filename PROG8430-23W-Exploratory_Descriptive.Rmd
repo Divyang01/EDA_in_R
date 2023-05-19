@@ -1,0 +1,352 @@
+---
+title: "EDA on Mail Delivery Data"
+author: "Divyang Vinubhai Hirpara"
+date: "01/31/2023"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=5, fig.height=5,
+                      fig.path='Figs/', echo = TRUE)
+#This sets the working directory
+knitr::opts_knit$set(root.dir = 'C:/Users/hirpa/Documents/Github/EDA_Mail_Orders/DATA')
+```
+
+
+
+*It will clear all the plots, the console and the workspace.*
+*It also sets the overall format for numbers.*
+
+```{r, include=FALSE}
+if(!is.null(dev.list())) dev.off()
+cat("\014") 
+rm(list=ls())
+options(scipen=9)
+```
+
+
+
+## PART 1:
+
+#### 1 
+**Statement: "We have more customers than before, but our new customers are streaming less than before."**
+
+There are some questions raised for data analysis which are mentioned below.  
+1. Who are the new customers? What are the age categories and gender?  
+2. What is the most popular streaming content in the system?  
+3. When compared to regular consumers, how do new customers stream on average?  
+4. Was streaming content free before and now paid or partial pay for premium content?  
+5. Is a decline in streaming activity specific to new customers, or is it a broader trend across the entire customer base?  
+
+
+#### 2
+*Hint, Site A had 28 downloads on the first day, 29 on the second and so on*
+```{r}
+site_A_DVH <- c(28, 29, 31, 28, 30, 30, 30, 32, 28, 33)
+site_B_DVH <- c(23, 19, 23, 33, 32, 27, 20, 24, 42, 32)
+site_C_DVH <- c(27, 26, 28, 25, 27, 27, 30, 30, 28, 26)
+
+cat("Downoads of Site A: ",site_A_DVH,'\n')
+cat("Downoads of Site B: ",site_B_DVH,"\n")
+cat("Downoads of Site C: ",site_C_DVH,"\n")
+```
+
+
+###### A). Which site has the least downloads on a typical day?
+
+
+```{r}
+Least_dwnld_site_A_DVH <- min(site_A_DVH)
+cat("The Least Download of site A is: ",Least_dwnld_site_A_DVH,"\n")
+Days_site_A_DVH <- which(site_A_DVH == Least_dwnld_site_A_DVH)
+cat("Downloads of site A were low on this days: ",Days_site_A_DVH,"\n\n")
+
+
+Least_dwnld_site_B_DVH <- min(site_B_DVH)
+cat("The Least Download of site B is: ",Least_dwnld_site_B_DVH,"\n")
+
+Days_site_B_DVH <- which(site_B_DVH == Least_dwnld_site_B_DVH)
+cat("Downloads of site B were low on this day: ",Days_site_B_DVH,"\n\n")
+
+
+Least_dwnld_site_C_DVH <- min(site_C_DVH)
+cat("The Least Download of site C is: ",Least_dwnld_site_C_DVH,"\n")
+
+Days_site_C_DVH <- which(site_C_DVH == Least_dwnld_site_C_DVH)
+cat("Downloads of site C were low on this day: ",Days_site_C_DVH,"\n\n")
+```
+**Interpretation**  
+This problem is solved by finding minimum value of each site data set of site A, site B, site C.  
+Site A: 28  
+Site B: 19  
+Site C: 25  
+Therefore, Site B has least downloads on typical day with 19 downloads on day 2.
+
+###### B). Which site has the most inconsistent usage?  
+```{r}
+cat("CV of Site A: ",sd(site_A_DVH)/mean(site_A_DVH),"\n")
+cat("CV of Site B: ",sd(site_B_DVH)/mean(site_B_DVH),"\n")
+cat("Cv of Site C: ",sd(site_C_DVH)/mean(site_C_DVH),"\n")
+```
+
+**Interpretation**  
+To check the most inconsistent usage of the site, we need to check the Coefficient of Variation of each site. The high Coefficient of Variation of the site is considered the most inconsistent site usage.  
+
+CV = standard Deviation/mean  
+
+The above output clearly shows that Site B has a high Coefficient of Variation. Hence Site B has the most inconsistent usage.  
+
+
+## PART 2:  
+
+#### 1. Basic Manipulation  
+###### 1. Read in the text file and change to a data frame  
+```{r}
+data_DVH <- read.table("PROG8430-23W-Assign01.txt",sep=",",header = TRUE)
+head(data_DVH)
+```
+**Interpretation**  
+Text file shall be read with 'read.table' function in R.  
+Text file is comma separated hence, sep=” ,” is used to identify a rows and column.  
+header=TRUE is used due to the text file is generated with header in first line.  
+By default, 6 records are displayed with 'head' function as shown above.  
+There are total 6 columns with manufacturer, server, dc of Character data type and smbr, smbt, conn of integer datatype.  
+
+###### 2. Append your initials to all variables in the data frame.
+```{r}
+
+#Append data_DVH initials to column names
+colnames(data_DVH) <- paste(colnames(data_DVH), "DVH", sep = "_")
+head(data_DVH,10)
+
+```
+**Interpretation**  
+Every column are replaced with initials.  
+Manufacturer --> Manufacturer_DH  
+Server --> Server_DH  
+DC --> DC_DH  
+SMBR --> SMBR_DH  
+SMBT --> SMBT_DH  
+Conn --> Conn_DH  
+
+###### 3. Change each character variable to a factor variable.
+```{r}
+data_DVH$Manufacturer_DVH <- as.factor(data_DVH$Manufacturer_DVH)
+data_DVH$Server_DVH <- as.factor(data_DVH$Server_DVH)
+data_DVH$DC_DVH <- as.factor(data_DVH$DC_DVH)
+
+head(data_DVH,10)
+```
+**Interpretation**  
+as.factor(variable): used to change data type into factor value.  
+From above change of char variables to factor variables.  
+Character type (chr) changed to --> (fctr)  
+
+###### 4. What are the dimensions of the dataset (rows and columns)?
+```{r}
+dim(data_DVH)
+```
+**Interpretation**  
+In order to find number of rows and column in dataset, dim() function is used.  
+There are 90000 row and 6 column are present in table.  
+
+#### 2. Summarizing Data  
+###### 1. Means and Standard Deviations  
+
+a. Calculate the mean and standard deviation for Server Message Blocks Received.  
+```{r}
+mean_SMBR_DVH <- mean(data_DVH$SMBR_DVH)
+print(paste0("Mean Of Server Message Blocks Received: ",mean_SMBR_DVH))
+
+sd_SMBR_DVH <- sd(data_DVH$SMBR_DVH)
+print(paste0("Standard Deviation Of Server Message Blocks Received: ",sd_SMBR_DVH))
+```
+**Interpretation**  
+mean() function is used to calculate average of values.  
+sd() function is used to calculate standard deviation of values.  
+MEAN of SMBR: 100017.18  
+SD of SMBR: 10002.46  
+
+b. Use the results above to calculate the coefficient of variation (rounded to 3 decimal places).  
+```{r}
+cv_SMBR_DVH <- sd_SMBR_DVH/mean_SMBR_DVH
+cv_SMBR_DVH <- round(cv_SMBR_DVH,3)
+print(paste0("coefficient of Variation Of Server Message Blocks Received: ",cv_SMBR_DVH))
+```
+**Interpretation**  
+Coefficient Variation is calculated by dividing mean of SMBR from standard deviation of SMBR.Value of mean and sd is taken from previous answer.  
+round() function returns floating point number is rounded to desire number. Here answer is rounded with 3 as per instruction.  
+CV of SMBR: 0.1  
+
+c. Calculate the mean and standard deviation for Serve Message Blocks Transmitted.  
+```{r}
+mean_SMBT_DVH <- mean(data_DVH$SMBT_DVH)
+print(paste0("Mean Of Server Message Blocks Trasmitted: ",mean_SMBT_DVH))
+
+sd_SMBT_DVH <- sd(data_DVH$SMBT_DVH)
+print(paste0("Standard Deviation Of Server Message Blocks Transmitted: ",sd_SMBT_DVH))
+```
+**Interpretation**  
+MEAN of SMBT: 49966.0049  
+SD of SMBT: 10024.4353  
+
+d. Also calculate the coefficient of variation (rounded to 3 decimal places).  
+```{r}
+cv_SMBT_DVH <- round(sd_SMBT_DVH/mean_SMBT_DVH,3)
+print(paste0("coefficient of Variation Of Server Message Blocks Transmitted: ",cv_SMBT_DVH))
+```
+**Interpretation**  
+CV of SMBT: 0.201  
+
+e. Does the SMBT or SMBR have more variation?  
+
+**Interpretation**  
+Yes, SMBT(0.201) has more variation compared to SMBR(0.1). from the above results of SMBT and SMBR.  
+
+###### 2. Calculate the 45th percentile of the number of Server Message Blocks Transmitted. This calculation should be rounded to the nearest whole number (no decimal places).
+```{r}
+percentile45_smbt_DVH <- quantile(data_DVH$SMBT_DVH, 0.45)
+print(paste0("The 45th percentile of the number of Server Message Blocks Transmitted: ",round(percentile45_smbt_DVH)))
+```
+**Interpretation**  
+quantile() is used to find 45th percentile of smbt.   
+The 45th percentile of the number of Server Message Blocks Transmitted: 48741  
+
+
+####2. Organizing Data
+######1. Summary Table  
+a. Create a table showing the average Server Message Blocks Transmitted by Manufacturer. This should be rounded to two decimal places.  
+```{r}
+ServerManufacture_DVH <- aggregate(data_DVH$SMBT_DVH, 
+                        by=list(data_DVH$Manufacturer_DVH), 
+                        FUN=mean, 
+                        na.rm=TRUE)
+colnames(ServerManufacture_DVH) <- c("Manufacture","Average SMBT")
+ServerManufacture_DVH
+```
+
+**Interpretation**  
+aggregate() function is used with appropriate arguments to find average smbt by manufacture. where, fun=mean represents average of smbt,
+by=list(data_DVH$Manufacturer_DVH) represents average by manufacture.  
+
+
+b. Which Manufacturer’s Servers have, on average, transmitted the most server message blocks? Which manufacturer is it?  
+
+**Interpretation**  
+From the previous result, Lled has most transmitted server message which is 50008.12.  
+
+###### 2. Cross Tabulation  
+a. Create a table counting all Servers by Data Centre  
+```{r}
+ServerDC_DVH <- table(data_DVH$Server_DVH,data_DVH$DC_DVH)
+ServerDC_DVH
+```
+
+b. Change the table to show the percentage of each Server in each Data Centre . This should be rounded to three decimal places.  
+
+Note: 1 is set as margin parameter  
+1 --> value divide by row sum
+2 --> Value divide by Column sum
+```{r}
+Percent_ServerDC_DVH <- round(prop.table(ServerDC_DVH,2),3)
+Percent_ServerDC_DVH
+```
+c. What percentage of servers at Elmira are MG9696?  
+```{r}
+Percent_ServerDC_DVH[,'Elmira']['MG9696']
+```
+**Interpretation**  
+Percentage of Server MG9696 at Elmira is 8%.  
+
+###### 3. Bar Plot  
+a. Create a bar plot of count of Servers Models.  
+b. The plot should be:  
+    i. Rank ordered by highest count of Server Model.  
+    ii. Properly labeled (title, x-axis, etc)  
+    iii. The bars should have a different colour than the one shown in class.  
+```{r}
+Server_DVH <- table(data_DVH$Server_DVH)
+Server_DVH <- Server_DVH[order(Server_DVH,decreasing = TRUE)]
+barplot(Server_DVH,
+        main="Bar plot of Server Model",
+        ylab="Count of Server",
+        xlab = "Server",
+        col = 2,
+        ylim =c(0,35000)
+        )
+```
+
+**Interpretation**  
+From above Bar chart, count of server varies from 0 to 35000. All the server are displayed as ascending order. There are total 6 servers available in bar char with Red color.  
+
+c. Based on the bar plot, (approximately) how many of Server RX8838 are there?  
+
+**Interpretation**  
+Based on the Bar Plot, there are around 9000 RX8838 server shown.  
+
+
+
+
+###### 4. Histogram  
+a. Create a histogram of Server Message Blocks Transmitted.  
+b. The plot should be properly labeled and a unique colour and have 10 breaks.  
+```{r}
+hist(data_DVH$SMBT_DVH,
+     col=7,
+     border = 2,
+     main="Histogram of Server Message Blocks Transmitted",
+     xlab = "SMBT",
+     breaks = 10
+          )
+```
+
+c. Which range of SMBT is the most common?  
+*Ans. From the above graph, most common range of SMBT is between 40000 to 60000.*  
+
+
+
+
+###### 5. Box Plot  
+a. Create a horizontal box plot of number of Connections Made.  
+b. The plot should be properly labeled and a unique colour.  
+```{r}
+boxplot(data_DVH$Conn_DVH,
+        col=5,
+        border = 2,
+        horizontal = TRUE,
+        main = "Box plot of number of Connections Made",
+        xlab = "Range of Connection made"
+        )
+```
+
+c. Based on the box plot, approximately how many servers made fewer than 6160 connections?  
+```{r}
+sum(data_DVH$Conn_DVH < 6160)
+```
+
+**Interpretation**  
+Number of Server fewer than 6160 is 16437.  
+
+
+
+###### 6. Scatter Plot  x   
+a. Create a scatter plot comparing Server Message Blocks Transmitted and Connections Made.  
+b. The plot should be properly labeled with a marker type different than the one demonstrated in class.  
+```{r}
+plot(data_DVH$SMBT_DVH,data_DVH$Conn_DVH,
+    pch=9,
+    xlab = "Server Message Blocks transmitted",
+    ylab = "Connection Made",
+    col=4
+    )
+```
+
+c. Does there appear to be an association between Server Message Blocks Transmitted and Connections Made?  
+
+**Interpretation**  
+As from plot, SMBT are positively increasing with connection made. There is a association between SMBT and connection made.   
+

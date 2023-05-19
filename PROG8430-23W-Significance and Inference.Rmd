@@ -1,0 +1,376 @@
+---
+title: "Significance and Inference"
+author: "Divyang Vinubhai Hirpara"
+date: "11/02/2023"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=5, fig.height=5,
+                      fig.path='Figs/', echo = TRUE)
+#This sets the working directory
+knitr::opts_knit$set(root.dir = 'C:/Users/hirpa/Documents/Github/EDA_Mail_Orders/DATA')
+```
+
+*It will clear all the plots, the console and the work-space.* *It also sets the overall format for numbers.*
+
+```{r,include=FALSE}
+if(!is.null(dev.list())) dev.off()
+cat("\014") 
+rm(list=ls())
+options(scipen=9)
+```
+
+```{r}
+if(!require(HSAUR)){install.packages("HSAUR")}
+library("HSAUR")
+
+if(!require(pastecs)){install.packages("pastecs")}
+library("pastecs")
+
+if(!require(lattice)){install.packages("lattice")}
+library("lattice")
+```
+
+## 1. Data Transformation and Preparation
+
+### 1. Initial Transformation
+
+##### a. Rename all variables with your initials appended.
+
+```{r}
+data_DVH <- read.table("PROG8430-23W-Assign02.txt",sep=",",header = TRUE)
+head(data_DVH)
+```
+
+**Interpretation**
+
+-   The text(.txt) file shall be read with 'read.table' function in R.
+
+-   Text file is comma separated hence, sep=" ," is used to identify a rows and column.
+
+-   Header=TRUE is used due to the text file is generated with header in first line.
+
+-   By default, 6 records are displayed with 'head()' function as shown above.
+
+-   There are total 12 columns with manufacturer and serve of Character data type, and index, conn,RC, ST, SMBR, SMBT, BR, BT, UC, FA of integer datatype.
+
+***`Rename Variables of column name`***
+
+```{r}
+#Append data_DVH initials to column names
+colnames(data_DVH) <- paste(colnames(data_DVH), "DVH", sep = "_")
+head(data_DVH,10)
+
+```
+
+**Interpretation**\
+Every column are replaced with initials.\
+Index --\> Index_DVH\
+Manufacturer --\> Manufacturer_DVH\
+Server --\> Server_DVH\
+Conn --\> Conn_DVH RC --\> RC_DVH\
+ST --\> ST_DVH\
+SMBR --\> SMBR_DH\
+SMBT --\> SMBT_DH\
+BR --\> BR_DVH\
+BT --\> BT_DVH\
+UC --\> UC_DVH\
+FA --\> FA_DVH
+
+##### b. Transform character variables to factor variables.
+
+```{r}
+data_DVH$Manufacturer_DVH <- as.factor(data_DVH$Manufacturer_DVH)
+data_DVH$Server_DVH <- as.factor(data_DVH$Server_DVH)
+
+head(data_DVH,8)
+```
+
+**Interpretation**\
+Manufacture_DVH and Server_DVH are character data type. hence it is changed to factor data type by using as.factor() function.
+
+### 2. Reduce Dimensionality
+
+##### a. Apply the Missing Value Filter to remove appropriate columns of data.
+
+```{r}
+summary(data_DVH)
+```
+
+**Interpretation**\
+The Summary () function displays statistical information such as min, 1st Quarter, 3rd Quarter, Median, Mean, Max, and missing values.\
+Looking at the above summary table of all columns, it seems there is no missing value available in any column.\
+If any missing value is available in any column, it is supposed to look like this - NA's 2. where 2 represents the number of missing values.
+
+##### b. Apply the Low Variance Filter to remove appropriate columns of data.
+
+```{r}
+stat.desc(data_DVH)  #Consider coef of var
+```
+
+**Interpretation**\
+From the above stat values, it seems UC_DVH (0.00002252) is likely very low in terms of Coef.var.
+
+```{r}
+table(data_DVH$UC_DVH)
+```
+
+**Interpretation**\
+From the above output, a high number of repeating values occurred for '2000', which is 81989. And, only 167 numbers appeared for '2001'. To conclude, it needs more balanced data for column 'UC_DVH.' for analysis.
+
+##### c. Apply the High Correlation Filter to remove appropriate columns of data.
+
+```{r}
+numeric_data_DVH <- data_DVH[-c(2:3)]
+head(numeric_data_DVH,3)
+
+```
+
+**Interpretation**  
+Removed non numeric column to find high correlation of data. And, Stored numeric columns to variable 'numeric_data_DVH' for further analysis.
+
+```{r}
+cor(numeric_data_DVH,method="spearman")
+```
+
+**Interpretation**\
+With Correlation function cor(), method="spearman" basically it refers to calculation of the Spearman's rank correlation coefficient. It helps find the high correlation between two variable.\
+From above values, there are variable with highly correlated values displayed below.\
+*SMBR_DVH --\> BR_DVH (0.99389967)\
+SMBT_DVH --\> BT_DVH(0.9935613)\
+BR_DVH --\> SMBR_DVH (0.99389967)\
+BT_DVH --\> SMBT_DVH(0.99356134)*
+
+Hence, there is no need of considering all variables for analysis, it be any two need either **SMBR_DVH and SMBT_DVH** or **BR_DVH and BT_DVH**.
+
+##### d. Drop any variables that do not contribute any useful analytical information at all.
+
+```{r}
+data_DVH <- data_DVH[, !colnames(data_DVH) %in% c("UC_DVH")]
+data_DVH <- data_DVH[, !colnames(data_DVH) %in% c("BR_DVH")]
+data_DVH <- data_DVH[, !colnames(data_DVH) %in% c("BT_DVH")]
+data_DVH <- data_DVH[, !colnames(data_DVH) %in% c("Index_DVH")]
+head(data_DVH,3)
+```
+
+**Interpretation**\
+From (b), there is low variance of UC_DVH column, which is 0.00002252. From (c), high correlation found between SMBR_DVH - BR_DVH and SMBT_DVH - BT_DVH.\
+Hence, There are total 4 variables UC_DVH, BR_DVH, Index_DVH and BT_DVH are dropped as they do not contribute any useful analytical information at all.
+
+### 3. Outliers
+
+##### a. Use an appropriate technique demonstrated in class to identify outliers.  
+```{r}
+boxplot(data_DVH$Manufacturer_DVH, horizontal=TRUE, pch=4, col=5, border = 2, main="Box plot of Manufacturer")
+boxplot(data_DVH$Server_DVH, horizontal=TRUE, pch=4,col=5, border = 2, main="Box plot of Server Model")
+boxplot(data_DVH$Conn_DVH, horizontal=TRUE, pch=4,col=5, border = 2, main="Box plot of No of connection made")
+boxplot(data_DVH$RC_DVH, horizontal=TRUE, pch=4,col=5, border = 2, main="Box plot of Reconnection made")
+boxplot(data_DVH$ST_DVH, horizontal=TRUE, pch=4,col=5, border = 2, main="Box plot of session time out")
+boxplot(data_DVH$SMBR_DVH, horizontal=TRUE, pch=4,col=5, border = 2, main="Box plot of server message block received")
+boxplot(data_DVH$SMBT_DVH, horizontal=TRUE, pch=4,col=5, border = 2, main="Box plot of server message block transmitted")
+boxplot(data_DVH$FA_DVH, horizontal=TRUE, pch=4,col=5, border = 2, main="Box plot of Files Accessed")
+
+```
+
+**Interpretation**\
+To find a outliers from data, there are different techniques used. Here box plot is displayed for all variables.\
+By focusing more on numeric variables from box plot, each variable has outliers present in data.\
+Re-connection made and server message block transmitted have some outliers which are more separated from other outliers as seen in box plot. Let's dig deeper on outliers with density plot.
+
+```{r}
+densityplot( ~ data_DVH$Conn_DVH, pch=8,main="density plot of Connection Made",xlab="Connection Made")
+densityplot( ~ data_DVH$RC_DVH, pch=8,main="density plot of Reconnection Made",xlab="Reconnection Made")
+densityplot( ~ data_DVH$ST_DVH, pch=8,main="density plot of session time out",xlab="session time out")
+densityplot( ~ data_DVH$SMBR_DVH, pch=8,main="density plot of server message block received",xlab="server message block received")
+densityplot( ~ data_DVH$SMBT_DVH, pch=8,main="density plot of server message block transmitted",xlab="server message block transmitted")
+densityplot( ~ data_DVH$FA_DVH, pch=8,main="density plot of Files Accessed",xlab="Files Accessed")
+```
+
+**Interpretation**  
+From the above density plot, Reconnection Made has two outliers which is way far from cluster.\
+To visualize of Reconnection Made with other variables on outliers, there are scatter plot displayed below.
+
+##### b. Comment on any outliers you see and deal with them appropriately. Make sure you explain why you dealt with them the way you decided to.
+```{r}
+plot(data_DVH$RC_DVH,data_DVH$Conn_DVH, main='Hunting Hiding outliers',pch=20,xlab = "Reconnection Made",ylab = "Connection Made",col=4)
+plot(data_DVH$RC_DVH,data_DVH$ST_DVH, main='Hunting Hiding outliers',pch=20,xlab = "Reconnection Made",ylab = "Sessions Timed-Out",col=4)
+plot(data_DVH$RC_DVH,data_DVH$SMBR_DVH, main='Hunting Hiding outliers',pch=20,xlab = "Reconnection Made",ylab = "Server Message Blocks Received",col=4)
+plot(data_DVH$RC_DVH,data_DVH$SMBT_DVH, main='Hunting Hiding outliers',pch=20,xlab = "Reconnection Made",ylab = "Server Message Blocks Transmitted",col=4)
+plot(data_DVH$RC_DVH,data_DVH$FA_DVH, main='Hunting Hiding outliers',pch=20,xlab = "Reconnection Made",ylab = "Files Accessed",col=4)
+
+```
+
+**Interpretation**  
+From the above scatter plot, it is clearly seen that Reconnection made has two outliers which is lower than \~ 0 and get separated from cluster.\
+As it is only two data and add no value for analysis, it is good decision to remove them from dataset.
+
+```{r}
+nr <- which(data_DVH$RC_DVH < 0)  #Find row number with RC_DVH < 0
+data_DVH <- data_DVH[-c(nr),]
+densityplot( ~ data_DVH$RC_DVH, pch=8,main="density plot of Reconnection Made",xlab="Reconnection Made")
+```
+
+**Interpretation**  
+Above code filter data which are lower than \~ -5 as and remove filtered value from original dataset.\
+Above density plot is evidence that two outliers are successfully removed from dataset.
+
+## 2. Organizing Data
+
+### 1. Scatter Plots
+
+##### a. Create a histogram for Server Message Blocks Received.
+
+```{r}
+hist(data_DVH$SMBR_DVH,
+     col=2,
+     border = 1,
+     main="Histogram of Server Message Blocks Received",
+     xlab = "SMBR",
+     breaks = 10
+          )
+```
+
+##### b. Create a histogram for Server Message Blocks Transmitted.  
+```{r}
+hist(data_DVH$SMBT_DVH,
+     col=2,
+     border = 1,
+     main="Histogram of Server Message Blocks Transmitted",
+     xlab = "SMBT",
+     breaks = 10
+          )
+```
+
+##### c. Create a scatter plot showing the relationship between SMBR and SMBT. (note: SMBR should be on the x-axis, SMBT should be the y-axis). 
+```{r}
+plot(data_DVH$SMBR_DVH,data_DVH$SMBT_DVH,
+    pch=9,
+    xlab = "Server Message Blocks Received",
+    ylab = "Server Message Blocks transmitted",
+    col=6
+    )
+```
+
+##### d. What conclusions, if any, can you draw from the chart?
+
+**Ans.**  
+The histograms will show the frequency distribution of the Server Message Blocks Received and Server Message Blocks Transmitted variables, respectively. The scatter plot will show the relationship between the two variables, and any outliers will be visible.\
+From scatter plot, it is clear that data trend is increasing in positive direction.
+
+##### e. Calculate a correlation coefficient between these two variables. Why did you choose the correlation coefficient you did? What conclusion you draw from it?  
+```{r}
+round(cor(data_DVH$SMBR_DVH,data_DVH$SMBT_DVH),3)
+```
+
+**Interpretation**  
+Reason for choosing coefficient is to measures the linear relationship between two variables.\
+To Conclude, correlation coefficient is 0.763, it means that there is a strong positive linear relationship between the server message block received and server message block transmitted.
+
+
+## 3. Inference
+
+### 1. Normality
+
+##### a. Create a QQ Normal plot of for Sessions Timed Out.
+```{r}
+qqnorm(data_DVH$ST_DVH, main="Is Session Time Out good?", pch=20)
+qqline(data_DVH$ST_DVH)
+```
+
+##### b. Conduct a statistical test for normality on Sessions Timed Out.
+```{r}
+sample_ST_DVH <- sample(data_DVH$ST_DVH,5000)
+shapiro.test(sample_ST_DVH)
+```
+
+##### c. Is Sessions Times Out normally distributed? What led you to this conclusion?
+
+**Ans.**  
+Session Times out is not normally distributed. Because, the QQ Normal plot for Sessions Timed Out shows that the data is not quite normally distributed. There is some deviation from the diagonal line in both tails of the plot, indicating that the data may be skewed.\
+A Shapiro-Wilk test for normality was also conducted. The null hypothesis is that the data is normally distributed, and the alternative hypothesis is that the data is not normally distributed. The p-value for the test was less than 0.05, which means that we can reject the null hypothesis and conclude that the data is not normally distributed.
+
+### 2. Statistically Significant Differences
+
+##### a. Compare Sessions Times Out between the two major Manufacturers in your dataset using a suitable hypothesis test.  
+```{r}
+manufacturer_Lled_DVH <- data_DVH$ST_DVH[data_DVH$Manufacturer_DVH == "Lled"]
+manufacturer_Ovonel_DVH <- data_DVH$ST_DVH[data_DVH$Manufacturer_DVH == "Ovonel"]
+
+
+var.test(manufacturer_Lled_DVH, manufacturer_Ovonel_DVH)
+```
+
+```{r}
+wilcox.test(ST_DVH ~ Manufacturer_DVH,data=data_DVH ,var.equal = FALSE)
+```
+
+##### b. Explain why you chose the test you did.
+
+**Ans.**\
+T-test can not be applied as variance is not close to 1.  
+
+##### b. Do you have strong evidence that Sessions Times Out are different between Manufacturers
+```{r}
+boxplot( ST_DVH ~ Manufacturer_DVH,
+data=data_DVH,
+main="Sessions Times Out by Manufacturers")
+```
+
+
+**Ans.**\
+Since Wilcoxon Test resulted to p-value < 2.2e-16. Null Hypothesis can be rejected and we have strong evidence
+to go with Alternate Hypothesis. Therefore, Sessions Times Out are different between Manufacturers.
+
+
+### 3. Multiple Statistical Differences
+
+##### a. Determine if Files Accessed varies by Server using ANOVA (statistical) and a sequence of boxplots (graphical).  
+```{r}
+# One Way ANOVA
+summary(aov(FA_DVH~Server_DVH, data=data_DVH))
+```
+
+**Interpretation**  
+Based on the ANOVA output, there is strong evidence to suggest that the mean number of Files Accessed varies by Server, with a very low p-value of less than 0.001. The F-value of 2079 also indicates a large difference in means between the groups, which reinforces the statistical significance of the result.\
+These results suggest that there is a statistically significant difference in the number of Files Accessed across different servers, and further investigation may be warranted to explore the nature of this difference.
+
+```{r}
+#Comparing Files by server
+
+boxplot(FA_DVH~Server_DVH, data=data_DVH,
+        main="File Accessed by Server",
+        xlab="Server",
+        ylab ="No of Files",
+        range=0)
+
+```
+
+**Interpretation**\
+The boxplot show the distribution of Files Accessed for each Server. There is a significant difference between the means of the groups, as we are able to see it in the above boxplot.
+
+##### b. Determine if Connections Made varies by Server using ANOVA and a sequence of boxplots.  
+```{r}
+# One Way ANOVA
+summary(aov(Conn_DVH~Server_DVH, data=data_DVH))
+```
+
+**Interpretation**\
+The output shows the results of an ANOVA test for the variable "Connections Made" across different servers. The null hypothesis in this test is that there is no significant difference in the mean number of connections made across the different servers.\
+Based on the output provided, the p-value for the F-test is 0.682, which is greater than the significance level of 0.05. Therefore, we fail to reject the null hypothesis, and there is not enough evidence to suggest that the mean number of connections made varies significantly across the different servers.
+
+```{r}
+#Comparing Files by server
+
+boxplot(Conn_DVH~Server_DVH, data=data_DVH,
+        main="Connection Made by Server",
+        xlab="Server",
+        ylab ="Connection Made",
+        range=0)
+
+```
+
+**Interpretation**\
+The boxplot show the distribution of Connection made for each Server. There is no such significant difference between the means of the groups, as we are able to see it in the above boxplot.
